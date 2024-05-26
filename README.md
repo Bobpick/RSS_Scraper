@@ -1,6 +1,6 @@
 # RSS and Atom Feed Scraper
 
-This Python program scrapes articles from RSS and Atom feeds, checks for alert words in the content, and stores relevant articles in a SQLite database. Additionally, it generates an HTML file containing hyperlinks to the scraped articles.
+This Python program scrapes daily articles from RSS and Atom feeds for OSINT purposes, checks for alert words in the content, and stores relevant articles in a SQLite database. Additionally, it generates an HTML file containing hyperlinks to the scraped articles.
 
 ## Installation
 
@@ -44,6 +44,12 @@ python rss.py
 ## Contributing
 
 Contributions are welcome! If you find any issues or have suggestions for improvements, please open an issue or submit a pull request.
+
+## To-Do
+
+1) Add error handling to deal with any parsing issues
+2) Develop front end for querying the database
+3) Ensure people have their proper titles
 
 ## License
 
