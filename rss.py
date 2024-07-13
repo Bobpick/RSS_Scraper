@@ -5,13 +5,16 @@ import sqlite3
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 import subprocess
+from dateutil import parser
 from datetime import datetime, timedelta, timezone
-import pytz  # Import the timezone module
-#bc1qlmslza0gugwnn55ykh8gl9sk3wga0h9hzrg4uld7cql0uqzncz7q248gd4
+import pytz
+
+
 # Function to clean HTML from text
 def clean_html(text):
     soup = BeautifulSoup(text, 'html.parser')
     return soup.get_text()
+
 
 # Define the file path for the second Python program
 second_program_path = 'C:/Users/Bob/Documents/Intelligence/people_job.py'
@@ -23,6 +26,7 @@ if os.path.exists(file_path):
     os.remove(file_path)
     print(f"Existing file '{file_path}' deleted.")
 
+
 def purge_duplicates():
     try:
         # Execute SQL query to delete duplicate entries based on the link column
@@ -33,6 +37,7 @@ def purge_duplicates():
     except Exception as e:
         print(f"Error purging duplicates: {e}")
 
+
 # Function to check if any alert word is present in the text
 def check_alert_words(text):
     for word in alert_words:
@@ -40,8 +45,10 @@ def check_alert_words(text):
             return True
     return False
 
+
 # List of RSS feed URLs
 rss_urls = ['https://www.marinecorpstimes.com/arc/outboundfeeds/rss/category/news/',
+            'https://www.geopolitical.report/latest/rss/',
             'https://feeds.stripes.com/apps/front_page.xml',
             'https://www.navytimes.com/arc/outboundfeeds/rss/category/news/?outputType=xml',
             'https://www.armytimes.com/m/rss/',
@@ -113,17 +120,38 @@ alert_words = {
     "emergency supplies": True,
     "accident": True
 }
+
+
+# Function to parse dates with multiple formats
+def parse_date(date_str):
+    try:
+        # Use dateutil.parser to parse the date string
+        parsed_date = parser.parse(date_str)
+
+        # If the parsed date doesn't have timezone info, assume it's UTC
+        if parsed_date.tzinfo is None:
+            parsed_date = parsed_date.replace(tzinfo=pytz.UTC)
+        else:
+            # Convert to UTC if it's not already
+            parsed_date = parsed_date.astimezone(pytz.UTC)
+
+        return parsed_date
+    except ValueError as e:
+        raise ValueError(f"Invalid date format: {date_str}. Error: {str(e)}")
+
 # Function to process each article
 def process_article(entry):
     title_html = ''  # Initialize title_html outside of the try block
 
-    try:
-        pubDate = entry.get('published', '')  # Using .get() to safely retrieve the 'published' attribute
-        # Parse the date string as UTC
-        pub_date_obj = datetime.strptime(pubDate, '%a, %d %b %Y %H:%M:%S %z').astimezone(pytz.utc)
+    pubDate = entry.get('published', '')
+    if not pubDate:
+        print(f"Error processing link: {entry.link}. No published date found.")
+        return
 
-    except ValueError:
-        print(f"Error processing link: {entry.link}. Invalid date format: {pubDate}")
+    try:
+        pub_date_obj = parse_date(pubDate)  # Parse the date string as UTC
+    except ValueError as e:
+        print(f"Error processing link: {entry.link}. {e}")
         return
 
     link = entry.link
@@ -159,7 +187,8 @@ def process_article(entry):
                 # Insert article data into the database
                 c.execute('''INSERT OR IGNORE INTO articles (pubDate, link, description, publisher, categoryTitle, title, body)
                              VALUES (?, ?, ?, ?, ?, ?, ?)''',
-                          (pub_date_obj.strftime('%a, %d %b %Y %H:%M:%S %Z'), link, description, publisher, categoryTitle, title, text))
+                          (pub_date_obj.strftime('%a, %d %b %Y %H:%M:%S %Z'), link, description, publisher,
+                           categoryTitle, title, text))
 
                 # Write the HTML hyperlink to a text file
                 with open('C:/Users/Bob/Documents/Intelligence/article_links.html', 'a') as file:
